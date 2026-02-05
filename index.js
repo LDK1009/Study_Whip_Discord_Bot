@@ -221,40 +221,20 @@ client.once("ready", () => {
   // }, 3000);
   //////////////// 테스트용 코드 끝 ////////////////
 
-  // 이 크론 작업은 매일 오전 8시에 명언을 전송하도록 스케줄링합니다.
-  cron.schedule(
-    "0 8 * * *",
-    () => {
-      sendRandomQuote(TARGET_CHANNEL_ID);
-    },
-    {
-      timezone: TIMEZONE,
-    },
-  );
+  // 이 반복문은 매일 8시부터 22시까지 1시간 간격으로 명언을 전송하도록 스케줄링합니다.
+  for (let hour = 8; hour <= 22; hour++) {
+    cron.schedule(
+      `0 ${hour} * * *`,
+      () => {
+        sendRandomQuote(TARGET_CHANNEL_ID);
+      },
+      {
+        timezone: TIMEZONE,
+      },
+    );
+  }
 
-  // 이 크론 작업은 매일 낮 12시에 명언을 전송하도록 스케줄링합니다.
-  cron.schedule(
-    "0 12 * * *",
-    () => {
-      sendRandomQuote(TARGET_CHANNEL_ID);
-    },
-    {
-      timezone: TIMEZONE,
-    },
-  );
-
-  // 이 크론 작업은 매일 오후 6시에 명언을 전송하도록 스케줄링합니다.
-  cron.schedule(
-    "0 18 * * *",
-    () => {
-      sendRandomQuote(TARGET_CHANNEL_ID);
-    },
-    {
-      timezone: TIMEZONE,
-    },
-  );
-
-  console.log("크론 스케줄러가 8시 / 12시 / 18시에 실행되도록 설정되었습니다.");
+  console.log("크론 스케줄러가 8시부터 22시까지 1시간 간격으로 실행되도록 설정되었습니다.");
 });
 
 // 이 구문은 DISCORD_TOKEN을 사용해 디스코드에 로그인하여 봇을 온라인 상태로 만듭니다.
