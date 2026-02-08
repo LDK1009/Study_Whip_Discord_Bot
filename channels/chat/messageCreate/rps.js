@@ -10,11 +10,8 @@ let rpsState = null;
 const CHOICES = ["가위", "바위", "보"];
 
 // 이 함수는 가위바위보 모드를 초기 상태로 리셋합니다.
-function initialize(modeManager = null) {
+function initialize() {
   rpsState = null;
-  if (modeManager) {
-    modeManager.releaseMode();
-  }
   return MODE_NAME;
 }
 
@@ -68,88 +65,68 @@ function processResult(state, messageOrUserId, currentUserId) {
   return resultMessage;
 }
 
-// 이 함수는 가위바위보 모드의 메시지를 처리합니다.
-async function handle(message, content, modeManager = null) {
-  // 현재 모드와 사용자 정보는 modeManager에서 가져옵니다.
-  const currentMode = modeManager ? modeManager.currentMode : null;
-  const currentUserId = modeManager ? modeManager.currentUserId : null;
+// 이 함수는 가위바위보 게임을 시작합니다.
+async function startGame(message, modeController) {
+  // 가위바위보 시작
+  rpsState = {
+    channel: message.channel,
+    startTime: Date.now(),
+    waitingForInput: true, // 카운트다운 중부터 입력 받기 시작
+    botChoice: null,
+    userChoice: null,
+    choiceTime: null, // 봇이 선택을 공개한 시간 (아직 공개 전)
+  };
 
-  // 명령어 처리 (:{기능명} 형식)
-  if (content.startsWith(":")) {
-    const command = content.slice(1);
-    
-    // 가위바위보 명령어 처리
-    if (command === "가위바위보") {
-      // 다른 사용자가 가위바위보 중인 경우
-      if (rpsState && currentUserId !== message.author.id) {
-        return `${message.author}님, 다른 사용자가 가위바위보를 진행 중입니다. 잠시 후 다시 시도해주세요.`;
-      }
+  // 가위바위보 모드 실행 메시지 전송
+  await message.channel.send("**가위바위보 모드 실행**");
 
-      // 모드 점령
-      if (modeManager) {
-        modeManager.occupyMode(message.author.id);
-      }
-
-      // 가위바위보 시작
-      rpsState = {
-        channel: message.channel,
-        startTime: Date.now(),
-        waitingForInput: true, // 카운트다운 중부터 입력 받기 시작
-        botChoice: null,
-        userChoice: null,
-        choiceTime: null, // 봇이 선택을 공개한 시간 (아직 공개 전)
-      };
-
-      // 가위바위보 모드 실행 메시지 전송
-      await message.channel.send("**가위바위보 모드 실행**");
-
-      // 카운트다운 전송
-      for (let i = 3; i >= 1; i--) {
-        await message.channel.send(`${i}`);
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      }
-
-      // 봇의 선택 (랜덤)
-      const botChoice = CHOICES[Math.floor(Math.random() * CHOICES.length)];
-      rpsState.botChoice = botChoice;
-      rpsState.choiceTime = Date.now(); // 봇이 선택을 공개한 시간
-
-      // 봇의 선택 공개
-      await message.channel.send(`**${botChoice}**`);
-
-      // 0.5초 후 입력 유효 시간 종료
-      setTimeout(async () => {
-        if (rpsState && rpsState.waitingForInput && currentUserId === message.author.id) {
-          rpsState.waitingForInput = false;
-          // 사용자가 입력하지 않은 경우
-          if (!rpsState.userChoice) {
-            await message.channel.send(`${message.author}님, 시간 초과로 무효 처리되었습니다.`);
-            rpsState = null;
-            if (modeManager) {
-              modeManager.releaseMode();
-            }
-          } else if (rpsState.userChoice && rpsState.botChoice) {
-            // 사용자가 입력했고 봇의 선택도 공개된 경우 결과 처리
-            const resultMessage = processResult(rpsState, currentUserId, currentUserId);
-            if (resultMessage) {
-              await message.channel.send(resultMessage);
-            }
-            if (modeManager) {
-              modeManager.releaseMode();
-            }
-          }
-        }
-      }, 500);
-
-      return null; // 비동기 처리 중이므로 null 반환
-    }
-    
-    // 다른 명령어는 무시
-    return null;
+  // 카운트다운 전송
+  for (let i = 3; i >= 1; i--) {
+    await message.channel.send(`${i}`);
+    await new Promise(resolve => setTimeout(resolve, 1000));
   }
 
-  // 가위바위보 모드가 활성화되어 있지 않으면 처리하지 않음
-  if (currentMode !== "RPS" || !rpsState) {
+  // 봇의 선택 (랜덤)
+  const botChoice = CHOICES[Math.floor(Math.random() * CHOICES.length)];
+  rpsState.botChoice = botChoice;
+  rpsState.choiceTime = Date.now(); // 봇이 선택을 공개한 시간
+
+  // 봇의 선택 공개
+  await message.channel.send(`**${botChoice}**`);
+
+  // 0.5초 후 입력 유효 시간 종료
+  setTimeout(async () => {
+    if (rpsState && rpsState.waitingForInput && modeController.currentUserId === message.author.id) {
+      rpsState.waitingForInput = false;
+      // 사용자가 입력하지 않은 경우
+      if (!rpsState.userChoice) {
+        await message.channel.send(`${message.author}님, 시간 초과로 무효 처리되었습니다.`);
+        rpsState = null;
+        modeController.resetMode();
+      } else if (rpsState.userChoice && rpsState.botChoice) {
+        // 사용자가 입력했고 봇의 선택도 공개된 경우 결과 처리
+        const resultMessage = processResult(rpsState, modeController.currentUserId, modeController.currentUserId);
+        if (resultMessage) {
+          await message.channel.send(resultMessage);
+        }
+        modeController.resetMode();
+      }
+    }
+  }, 500);
+}
+
+// 이 함수는 가위바위보 모드의 메시지를 처리합니다.
+async function handle(message, content, modeController) {
+  const currentUserId = modeController.currentUserId;
+
+  // 명령어 처리 (가위바위보 시작)
+  if (content === ":가위바위보") {
+    await startGame(message, modeController);
+    return null; // 비동기 처리 중이므로 null 반환
+  }
+
+  // 게임이 진행 중이 아니면 처리하지 않음
+  if (!rpsState) {
     return null;
   }
 
@@ -178,9 +155,7 @@ async function handle(message, content, modeManager = null) {
     if (timeSinceChoice > 500) {
       rpsState.waitingForInput = false;
       rpsState = null;
-      if (modeManager) {
-        modeManager.releaseMode();
-      }
+      modeController.resetMode();
       return `${message.author}님, 너무 늦게 입력하셨습니다. 무효 처리되었습니다.`;
     }
   }
@@ -192,9 +167,7 @@ async function handle(message, content, modeManager = null) {
   if (rpsState.botChoice) {
     rpsState.waitingForInput = false;
     const resultMessage = processResult(rpsState, message, currentUserId);
-    if (modeManager) {
-      modeManager.releaseMode();
-    }
+    modeController.resetMode();
     return resultMessage;
   }
 
