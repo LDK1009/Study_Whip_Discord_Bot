@@ -89,9 +89,7 @@ client.on("messageCreate", async (message) => {
 });
 
 // 이 이벤트 핸들러는 봇이 준비(로그인 완료)되었을 때 한 번 실행되며, 스케줄러를 설정합니다.
-client.once("ready", () => {
-  console.log(`Logged in as ${client.user.tag}`);
-
+client.once("clientReady", () => {
   // 각 채널의 ready 이벤트 핸들러 실행
   CHANNELS.forEach((channel) => {
     if (channel.ready) {

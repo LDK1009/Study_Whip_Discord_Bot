@@ -17,8 +17,6 @@ function handle(client, channelId, timezone = "Asia/Seoul") {
       },
     );
   }
-
-  console.log(`크론 스케줄러가 8시부터 22시까지 1시간 간격으로 채널(${channelId})에 명언을 전송하도록 설정되었습니다.`);
 }
 
 module.exports = {
