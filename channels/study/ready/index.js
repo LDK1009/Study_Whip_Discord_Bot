@@ -6,17 +6,17 @@ const { sendRandomQuote } = require("./quotes");
 // 이 함수는 공부 채널의 ready 이벤트를 처리합니다.
 function handle(client, channelId, timezone = "Asia/Seoul") {
   // 이 반복문은 매일 8시부터 22시까지 1시간 간격으로 명언을 전송하도록 스케줄링합니다.
-  for (let hour = 8; hour <= 22; hour++) {
-    cron.schedule(
-      `0 ${hour} * * *`,
-      () => {
-        sendRandomQuote(client, channelId);
-      },
-      {
-        timezone: timezone,
-      },
-    );
-  }
+  // for (let hour = 8; hour <= 22; hour++) {
+  //   cron.schedule(
+  //     `0 ${hour} * * *`,
+  //     () => {
+  //       sendRandomQuote(client, channelId);
+  //     },
+  //     {
+  //       timezone: timezone,
+  //     },
+  //   );
+  // }
 }
 
 module.exports = {
